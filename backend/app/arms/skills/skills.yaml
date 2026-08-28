@@ -1,0 +1,21 @@
+servers:
+  memory:
+    transport: stdio
+    command: python
+    args:
+      - mcp_servers/memory_server.py
+  ingest:
+    transport: stdio
+    command: python
+    args:
+      - mcp_servers/ingest_server.py
+  web_search:
+    transport: stdio
+    command: python
+    args:
+      - mcp_servers/web_search_server.py
+  filesystem:
+    transport: stdio
+    command: python
+    args:
+      - mcp_servers/filesystem_server.py

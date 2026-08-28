@@ -1,0 +1,17 @@
+---
+description: ARMS architecture — who talks to whom in A.K.I.R.A.
+alwaysApply: true
+---
+
+# ARMS
+
+- **Apps**: React consumes FastAPI only (HTTP/SSE). Never MCP, never Neo4j.
+- **Routines**: LangGraph `query_graph` and `ingest_graph` in `backend/app/arms/routines/`. LangGraph stays in the orchestrator.
+- **Memory**: Neo4j 5 + native vector indexes. Only `backend/app/arms/memory/` uses Bolt/Cypher.
+- **Skills**: FastMCP servers in `backend/mcp_servers/`, discovered via `skills.yaml` + `MultiServerMCPClient`. Orchestrator does not hand-write tools.
+
+Dual access: agent tools go through `memory_server` MCP; the UI graph goes through `GET /api/graph/*` which calls `arms/memory` directly.
+
+HTTP contracts are frozen in `backend/app/api/schemas.py`. Do not add routes outside that file without updating it first.
+
+Out of MVP: Weaviate, SGLang, OCR, GoT, community reports, FAISS, Next.js, fake REST "MCP", GDS plugin, `SIMILAR_TO` on day 1.

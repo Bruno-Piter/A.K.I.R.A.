@@ -1,0 +1,13 @@
+# A.K.I.R.A.
+
+Agentic Knowledge Integration & Retrieval Architecture. ARMS: Apps (FastAPI), Routines (LangGraph), Memory (Neo4j), Skills (FastMCP).
+
+- React only talks HTTP/SSE to FastAPI. Never MCP. Never Neo4j.
+- Only `backend/app/arms/memory/` speaks Bolt/Cypher.
+- MCP servers in `backend/mcp_servers/` must not import LangGraph or FastAPI.
+- HTTP contracts live in `backend/app/api/schemas.py`. Do not invent routes.
+- No Weaviate, SGLang, OCR, GDS plugin, GDS cosine, Next.js, FAISS, secrets in code.
+- LLM: OpenAI default + Ollama via `LLM_PROVIDER` / `EMBEDDINGS_PROVIDER`.
+- Code/file names in English. User-facing messages in Portuguese.
+- Do not commit unless the user asks.
+- Hostname for this project: DESKTOP-PJ9TP90 only. Never NRJ_371.

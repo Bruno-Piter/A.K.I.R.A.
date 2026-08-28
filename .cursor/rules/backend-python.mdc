@@ -1,0 +1,15 @@
+---
+description: Python backend conventions for A.K.I.R.A.
+globs: backend/**/*.py
+alwaysApply: false
+---
+
+# Backend Python
+
+- Python 3.11+. Settings via `pydantic-settings` and `.env`. No secrets in source.
+- MCP servers (`backend/mcp_servers/`) must not import LangGraph or FastAPI.
+- Cypher and the Neo4j driver live only in `backend/app/arms/memory/`.
+- Use Neo4j 5 native vector indexes on `Chunk.embedding` and `Entity.embedding`. Do not use `gds.similarity.cosine`.
+- Typed FastAPI models belong in `backend/app/api/schemas.py`.
+- Prefer structured LLM output (JSON schema) over regex/pipe parsers.
+- Checkpointer: SQLite (`langgraph-checkpoint-sqlite`), not process-only `MemorySaver` as the production path.

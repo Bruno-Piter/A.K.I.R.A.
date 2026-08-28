@@ -1,0 +1,14 @@
+---
+description: React frontend conventions for A.K.I.R.A.
+globs: frontend/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Frontend React
+
+- Vite + React + TypeScript. Not Next.js.
+- Graph viz: `react-force-graph-2d` with a radial layout.
+- Talk only to FastAPI (`/api/*`). Never Neo4j Bolt. Never MCP.
+- Graph payload: `{ nodes: [{id,label,type,val}], links: [{source,target,type,strength}] }`.
+- Chat uses `POST /api/chat/stream` SSE events: `stage | token | sources | graph_context | done`.
+- Functional components and hooks. Keep product pages under `frontend/src/pages/` when the UI agent lands.

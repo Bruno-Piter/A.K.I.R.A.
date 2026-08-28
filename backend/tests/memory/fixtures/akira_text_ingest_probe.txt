@@ -1,0 +1,5 @@
+The document title is AKIRA Text Ingest Probe.
+
+The unique verification phrase is AKIRA text ingest probe ALPHA-TXT-42.
+
+This file exists so the integrator can confirm .txt upload, chunking, and retrieval.
