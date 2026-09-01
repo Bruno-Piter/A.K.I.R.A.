@@ -23,3 +23,5 @@ Thumbs.db
 data/uploads/
 backend/data/uploads/
 checkpoints/
+
+frontend/e2e-tmp-*
