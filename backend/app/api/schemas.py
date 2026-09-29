@@ -54,7 +54,7 @@ class GraphLink(BaseModel):
 
 
 class GraphPayload(BaseModel):
-    """Payload for react-force-graph-2d (`nodes` + `links`)."""
+    """Payload for react-force-graph-3d (`nodes` + `links`)."""
 
     nodes: list[GraphNode] = Field(default_factory=list)
     links: list[GraphLink] = Field(default_factory=list)

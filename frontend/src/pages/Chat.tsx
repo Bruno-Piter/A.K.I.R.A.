@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { apiStatus, streamChat } from '../api/client.ts'
 import type { ChatSource, GraphPayload } from '../api/types.ts'
-import RadialGraph from '../components/graph/RadialGraph.tsx'
+import GraphScene from '../components/graph/GraphScene.tsx'
 
 type ChatProps = {
   onGraphContext?: (graph: GraphPayload | null) => void
@@ -24,22 +24,67 @@ function newId(): string {
   return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
+function graphFromSources(sources: ChatSource[]): GraphPayload {
+  const nodes: GraphPayload['nodes'] = []
+  const links: GraphPayload['links'] = []
+  const seen = new Set<string>()
+  for (const source of sources) {
+    const docId = source.document_id || `doc-${source.chunk_id}`
+    if (!seen.has(docId)) {
+      seen.add(docId)
+      nodes.push({
+        id: docId,
+        label: source.title || docId,
+        type: 'document',
+        val: 2.4,
+      })
+    }
+    const chunkId = source.chunk_id || `chunk-${nodes.length}`
+    if (!seen.has(chunkId)) {
+      seen.add(chunkId)
+      nodes.push({
+        id: chunkId,
+        label: source.excerpt || source.title || chunkId,
+        type: 'chunk',
+        val: 1.2,
+      })
+      links.push({
+        source: docId,
+        target: chunkId,
+        type: 'HAS_CHUNK',
+        strength: source.score != null ? Math.max(0.4, source.score) : 1,
+      })
+    }
+  }
+  return { nodes, links }
+}
+
 export default function Chat({ onGraphContext }: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [draft, setDraft] = useState('')
   const [streaming, setStreaming] = useState(false)
   const [threadId, setThreadId] = useState<string | null>(null)
+  const [liveGraph, setLiveGraph] = useState<GraphPayload | null>(null)
+  const liveGraphRef = useRef<GraphPayload | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
   const lastGraph = useMemo(() => {
+    if (liveGraph && liveGraph.nodes.length) return liveGraph
     for (let i = messages.length - 1; i >= 0; i -= 1) {
       const graph = messages[i]?.graph
       if (graph && graph.nodes.length) return graph
     }
     return null
-  }, [messages])
+  }, [messages, liveGraph])
 
   const highlightIds = lastGraph?.nodes.map((node) => node.id) ?? []
+
+  function applyGraph(graph: GraphPayload | null | undefined): void {
+    if (!graph || !graph.nodes.length) return
+    liveGraphRef.current = graph
+    setLiveGraph(graph)
+    onGraphContext?.(graph)
+  }
 
   async function send(): Promise<void> {
     const text = draft.trim()
@@ -87,15 +132,28 @@ export default function Chat({ onGraphContext }: ChatProps) {
         },
         onSources: (sources) => {
           patchAssistant((current) => ({ ...current, sources }))
+          if (!liveGraphRef.current?.nodes.length) {
+            applyGraph(graphFromSources(sources))
+          }
         },
         onGraphContext: (graph) => {
           patchAssistant((current) => ({ ...current, graph }))
-          onGraphContext?.(graph)
+          applyGraph(graph)
         },
         onDone: (content) => {
-          if (content && typeof content === 'object' && 'thread_id' in content) {
-            const tid = (content as { thread_id?: unknown }).thread_id
+          if (content && typeof content === 'object') {
+            const record = content as Record<string, unknown>
+            const tid = record.thread_id
             if (typeof tid === 'string' && tid) setThreadId(tid)
+            const nested =
+              record.graph_context ?? record.graph_payload ?? record.graph ?? record.content
+            if (nested && typeof nested === 'object') {
+              const payload = nested as GraphPayload
+              if (Array.isArray(payload.nodes) && payload.nodes.length) {
+                patchAssistant((current) => ({ ...current, graph: payload }))
+                applyGraph(payload)
+              }
+            }
           }
         },
         onError: (error) => {
@@ -113,6 +171,7 @@ export default function Chat({ onGraphContext }: ChatProps) {
       streaming: false,
       stage: undefined,
       usedMock: result.usedMock,
+      graph: current.graph ?? liveGraphRef.current,
     }))
     setStreaming(false)
   }
@@ -201,7 +260,13 @@ export default function Chat({ onGraphContext }: ChatProps) {
             <span className="muted">mocks</span>
           ) : null}
         </header>
-        <RadialGraph data={lastGraph ?? { nodes: [], links: [] }} highlightIds={highlightIds} />
+        <div className="graph-canvas">
+          <GraphScene
+            variant="chat"
+            data={lastGraph ?? { nodes: [], links: [] }}
+            highlightIds={highlightIds}
+          />
+        </div>
       </aside>
     </div>
   )

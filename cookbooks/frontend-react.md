@@ -1,4 +1,4 @@
-# Cookbook — frontend React
+# Cookbook - frontend React
 
 ## Run
 
@@ -12,7 +12,9 @@ Dev server: `http://localhost:5173`. Proxy or `VITE_API_URL=http://localhost:800
 
 ## Pages (Agente 5)
 
-When implementing product UI: `Chat`, `GraphExplorer`, `Ingest`. Graph component: `components/graph/RadialGraph.tsx` using `react-force-graph-2d`.
+When implementing product UI: `Chat`, `GraphExplorer`, `Ingest`. Graph component: `components/graph/GraphScene.tsx` using `react-force-graph-3d` (WebGL, free 3D force, UnrealBloomPass, `three-spritetext` labels). `RadialGraph.tsx` re-exports `GraphScene` so older imports keep working.
+
+Explorer is a full-bleed canvas with an overlay HUD (counts, legend, orbit tip, Visão geral). Chat aside uses `variant="chat"` (softer bloom, no auto-rotate, `showNavInfo={false}`). Mock mode still comes from `src/api/mocks.ts` when FastAPI is offline.
 
 ## API client
 
@@ -23,3 +25,4 @@ Keep fetch/SSE in `src/api/client.ts`. Types must match `backend/app/api/schemas
 - Import Neo4j drivers.
 - Call MCP servers from the browser.
 - Introduce Next.js or a second bundler.
+

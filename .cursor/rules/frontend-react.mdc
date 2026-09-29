@@ -7,8 +7,9 @@ alwaysApply: false
 # Frontend React
 
 - Vite + React + TypeScript. Not Next.js.
-- Graph viz: `react-force-graph-2d` with a radial layout.
+- Graph viz: 3D free force with `react-force-graph-3d` / `three` / `three-spritetext` (`GraphScene.tsx`).
 - Talk only to FastAPI (`/api/*`). Never Neo4j Bolt. Never MCP.
 - Graph payload: `{ nodes: [{id,label,type,val}], links: [{source,target,type,strength}] }`.
 - Chat uses `POST /api/chat/stream` SSE events: `stage | token | sources | graph_context | done`.
 - Functional components and hooks. Keep product pages under `frontend/src/pages/` when the UI agent lands.
+

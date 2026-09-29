@@ -238,6 +238,7 @@
 
 .composer button,
 .graph-toolbar button,
+.graph-hud button,
 .file-button {
   border: 1px solid var(--accent-border);
   background: var(--accent-bg);
@@ -260,21 +261,53 @@
   border-bottom: 1px solid var(--border);
 }
 
+.graph-scene,
 .radial-graph {
+  position: absolute;
+  inset: 0;
   flex: 1;
   width: 100%;
-  min-height: 480px;
-  position: relative;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
 }
 
-.graph-empty {
+.chat-graph .graph-scene,
+.chat-graph .radial-graph,
+.chat-graph .graph-empty {
+  min-height: 320px;
+}
+
+.graph-empty,
+.graph-fallback {
   display: grid;
   place-items: center;
-  min-height: 480px;
+  min-height: 0;
+  height: 100%;
   color: var(--text);
   padding: 24px;
   text-align: center;
+  background: #050508;
+  gap: 12px;
+}
+
+.graph-fallback {
+  justify-items: start;
+  align-content: start;
+  text-align: left;
+}
+
+.graph-fallback__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 40vh;
+  overflow: auto;
+  font-size: 13px;
+  color: var(--text-h);
 }
 
 .page--graph .graph-toolbar {
@@ -290,6 +323,7 @@
 .counts {
   display: flex;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .counts strong {
@@ -304,8 +338,158 @@
 }
 
 .graph-canvas {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #050508;
+}
+
+.chat-graph .graph-canvas {
   flex: 1;
-  min-height: 480px;
+  min-height: 0;
+}
+
+.graph-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(
+    180deg,
+    rgba(7, 8, 13, 0.62) 0%,
+    transparent 88px,
+    transparent calc(100% - 72px),
+    rgba(7, 8, 13, 0.5) 100%
+  );
+}
+
+.graph-hud__bar,
+.graph-hud__meta,
+.graph-hud__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.graph-hud__meta {
+  justify-content: space-between;
+}
+
+.graph-hud button,
+.graph-hud .banner,
+.graph-focus-chip {
+  pointer-events: auto;
+}
+
+.graph-legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-h);
+}
+
+.legend-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.legend-dot--document {
+  color: #c084fc;
+}
+
+.legend-dot--entity {
+  color: #22d3ee;
+}
+
+.legend-dot--chunk {
+  color: #fbbf24;
+}
+
+.graph-focus-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  font-size: 12px;
+  color: var(--text-h);
+}
+
+.graph-orbit-tip {
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.85;
+}
+
+.graph-hud__banner {
+  margin-top: 8px;
+  max-width: 100%;
+}
+
+.graph-inspector {
+  position: absolute;
+  top: 72px;
+  right: 16px;
+  z-index: 3;
+  pointer-events: auto;
+  min-width: 220px;
+  max-width: min(320px, calc(100% - 32px));
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(22, 23, 29, 0.92);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.graph-inspector h3 {
+  font-size: 14px;
+  margin: 0;
+}
+
+.graph-inspector dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  font-size: 12px;
+}
+
+.graph-inspector dt {
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+}
+
+.graph-inspector dd {
+  margin: 0;
+  color: var(--text-h);
+  font-family: var(--mono);
+  overflow-wrap: anywhere;
 }
 
 .page--ingest {
@@ -424,7 +608,54 @@
     min-height: 480px;
   }
 
+  .chat-graph .graph-scene,
+  .chat-graph .radial-graph,
+  .chat-graph .graph-empty {
+    min-height: 480px;
+  }
+
   .app-header {
     flex-wrap: wrap;
   }
+
+  .graph-hud {
+    padding: 8px;
+  }
+
+  .graph-hud__bar,
+  .graph-hud__meta,
+  .graph-hud__status {
+    gap: 8px;
+  }
+
+  .graph-inspector {
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: 56px;
+    max-width: none;
+  }
+}
+
+.page--graph {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.graph-canvas {
+  width: 100%;
+}
+
+.graph-scene canvas,
+.radial-graph canvas {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.graph-scene > div,
+.radial-graph > div {
+  width: 100% !important;
+  height: 100% !important;
 }

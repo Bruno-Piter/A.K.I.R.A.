@@ -15,6 +15,8 @@ import type {
   DocumentListResponse,
   DocumentSummary,
   DocumentUploadResponse,
+  GraphLink,
+  GraphNode,
   GraphOverviewResponse,
   GraphPayload,
   HealthResponse,
@@ -185,12 +187,84 @@ function asChatSources(value: unknown): ChatSource[] {
   return Array.isArray(value) ? (value as ChatSource[]) : []
 }
 
-function asGraphPayload(value: unknown): GraphPayload {
-  if (!isRecord(value)) return { nodes: [], links: [] }
-  const nodes = Array.isArray(value.nodes) ? (value.nodes as GraphPayload['nodes']) : []
-  const links = Array.isArray(value.links) ? (value.links as GraphPayload['links']) : []
-  return { nodes, links }
+function asGraphNode(value: unknown): GraphNode | null {
+  if (!isRecord(value)) return null
+  const id = value.id ?? value.elementId ?? value.chunk_id ?? value.document_id ?? value.entity_id
+  if (id == null || id === '') return null
+  const rawType = value.type ?? value.labels ?? value.label_type ?? 'entity'
+  const type = Array.isArray(rawType) ? String(rawType[0] ?? 'entity') : String(rawType || 'entity')
+  const label = String(value.label ?? value.name ?? value.title ?? value.filename ?? id)
+  const valRaw = value.val ?? value.value ?? value.weight ?? 1
+  const val = typeof valRaw === 'number' && Number.isFinite(valRaw) ? valRaw : 1
+  const color = typeof value.color === 'string' ? value.color : null
+  return { id: String(id), label, type, val, color }
 }
+
+function asGraphLink(value: unknown): GraphLink | null {
+  if (!isRecord(value)) return null
+  const source = value.source ?? value.from ?? value.start
+  const target = value.target ?? value.to ?? value.end
+  if (source == null || target == null) return null
+  const src =
+    typeof source === 'object' && source && 'id' in source
+      ? String((source as { id: unknown }).id)
+      : String(source)
+  const tgt =
+    typeof target === 'object' && target && 'id' in target
+      ? String((target as { id: unknown }).id)
+      : String(target)
+  const strengthRaw = value.strength ?? value.weight ?? 1
+  const strength = typeof strengthRaw === 'number' && Number.isFinite(strengthRaw) ? strengthRaw : 1
+  return {
+    source: src,
+    target: tgt,
+    type: String(value.type ?? value.rel_type ?? 'RELATED_TO'),
+    strength,
+  }
+}
+
+function asGraphPayload(value: unknown): GraphPayload {
+  const seen = new Set<unknown>()
+  const stack: unknown[] = [value]
+  while (stack.length) {
+    const current = stack.pop()
+    if (current == null || seen.has(current)) continue
+    seen.add(current)
+    if (typeof current === 'string') {
+      const trimmed = current.trim()
+      if ((trimmed.startsWith('{') || trimmed.startsWith('[')) && trimmed.length > 1) {
+        try {
+          stack.push(JSON.parse(trimmed) as unknown)
+        } catch {
+          /* ignore */
+        }
+      }
+      continue
+    }
+    if (Array.isArray(current)) {
+      const nodes = current.map(asGraphNode).filter((node): node is GraphNode => node != null)
+      if (nodes.length) return { nodes, links: [] }
+      continue
+    }
+    if (!isRecord(current)) continue
+    const directNodes = Array.isArray(current.nodes) ? current.nodes : null
+    const directLinks = Array.isArray(current.links)
+      ? current.links
+      : Array.isArray(current.edges)
+        ? current.edges
+        : []
+    if (directNodes) {
+      const nodes = directNodes.map(asGraphNode).filter((node): node is GraphNode => node != null)
+      const links = directLinks.map(asGraphLink).filter((link): link is GraphLink => link != null)
+      if (nodes.length) return { nodes, links }
+    }
+    for (const key of ['content', 'graph_context', 'graph_payload', 'graph', 'data', 'payload']) {
+      if (key in current) stack.push(current[key])
+    }
+  }
+  return { nodes: [], links: [] }
+}
+
 
 function dispatchEvent(type: SseEventType, content: unknown, callbacks: ChatStreamCallbacks): void {
   switch (type) {
@@ -230,13 +304,26 @@ function dispatchSseBlock(block: string, callbacks: ChatStreamCallbacks): void {
   if (isRecord(parsed) && typeof parsed.type === 'string' && isSseEventType(parsed.type)) {
     const event = parsed as SseEvent
     dispatchEvent(event.type, event.content, callbacks)
+    if (event.type !== 'graph_context') {
+      const extra = asGraphPayload(event.content)
+      if (extra.nodes.length) callbacks.onGraphContext?.(extra)
+    }
     return
   }
 
   if (eventName && isSseEventType(eventName)) {
     dispatchEvent(eventName, parsed, callbacks)
+    if (eventName !== 'graph_context') {
+      const extra = asGraphPayload(parsed)
+      if (extra.nodes.length) callbacks.onGraphContext?.(extra)
+    }
+    return
   }
+
+  const guessed = asGraphPayload(parsed)
+  if (guessed.nodes.length) callbacks.onGraphContext?.(guessed)
 }
+
 
 async function readSseStream(
   body: ReadableStream<Uint8Array>,
